@@ -111,6 +111,42 @@ exports['extends'] = testCase({
     }
 });
 
+exports['parent'] = testCase({
+    setUp: function(callback) {
+        swig.init({});
+        this.parent_base = '{% block one %}from parent{% endblock %}';
+        callback();
+    }
+    , 'allow fallthrough': function(test) {
+        swig.compile(this.parent_base, { filename: 'parent_base.html' });
+        var fallthrough =  swig.compile('{% extends "parent_base.html" %}{% block one %}{% parent %}{% endblock %}', { filename: 'fallthrough.html' });
+        test.strictEqual('from parent', fallthrough({}));
+        test.done();
+    }
+    , 'allow override': function(test) {
+        swig.compile(this.parent_base, { filename: 'parent_base.html' });
+        var overridden =  swig.compile('{% extends "parent_base.html" %}{% block one %}from child{% endblock %}', { filename: 'override.html' });
+        test.strictEqual('from child', overridden({}));
+        test.done();
+    }
+    , 'allow combination': function(test) {
+        swig.compile(this.parent_base, { filename: 'parent_base.html' });
+        var mixed =  swig.compile('{% extends "parent_base.html" %}{% block one %}from child {% parent %}{% endblock %}', { filename: 'mixed.html' });
+        test.strictEqual('from child from parent', mixed({}));
+        test.done();
+    }
+    , 'allow inside conditional': function(test) {
+        swig.compile(this.parent_base, { filename: 'parent_base.html' });
+        var conditional_text = [
+            '{% extends "parent_base.html" %}{% block one %}{% if somevar %}{{ somevar }}{% else %}{% parent %}{% endif %}{% endblock %}'
+        ].join('');
+        var conditional =  swig.compile(conditional_text, { filename: 'cond.html' });
+        test.strictEqual('something', conditional({ somevar: 'something'}));
+        test.strictEqual('from parent', conditional({}));
+        test.done();
+    }
+});
+
 exports.include = testCase({
     setUp: function (callback) {
         swig.init({ root: __dirname + '/templates' });
